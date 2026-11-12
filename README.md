@@ -1,7 +1,12 @@
 # 先寫一點點 — 預約表單草稿小幫手
 
 已經約好身心科或心理諮商,卻卡在預約表單的「描述心理困擾與主訴」那一格?
-這個網站把那一格拆成七個可以用點選回答的小問題,當下組成一段能直接貼上的草稿。
+這個網站把那一格拆成幾個可以用點選回答的小問題,當下組成一段能直接貼上的草稿。
+
+兩種用法:
+
+1. **貼上表單題目**:把預約表單要填的題目貼上,系統依它產生 5–10 題可勾選(也可手寫)的小問題,最後依表單欄位整理成文字。
+2. **通用題目**:不貼也可以,直接回答七題通用問題。
 
 - 不註冊、不儲存:回答只存在瀏覽器分頁的記憶體裡,關掉就消失。
 - 中立代筆:只整理使用者自己說的內容,不診斷、不建議、不評價。
@@ -59,17 +64,21 @@ npx wrangler deploy
 把部署後的網址填進 `docs/config.js`:
 
 ```js
-window.INTAKE_API = "https://mindverse-intake.<你的子網域>.workers.dev/api/draft";
+window.INTAKE_API = "https://mindverse-intake.<你的子網域>.workers.dev";
 ```
 
 ## 可調整的設定(`worker/wrangler.toml`)
 
 | 變數 | 預設 | 說明 |
 |---|---|---|
-| `DAILY_LIMIT_PER_IP` | 50 | 每個來源 IP 每日次數(台北時間換日) |
+| `DAILY_LIMIT_PER_IP` | 50 | 每個來源 IP 每日次數(台北時間換日)。「依表單出題」與「整理文字」各算一次 |
 | `DAILY_LIMIT_GLOBAL` | 400 | 全站每日次數,等於你的每日成本上限 |
 | `MODEL` | `claude-opus-5-5` | 使用的 Claude 模型 |
 | `ALLOWED_ORIGINS` | GitHub Pages 網址 | 允許呼叫的網站來源 |
+
+## 背景音樂
+
+`docs/breath-of-the-mountain-path.m4a` 預設不播放、也不預先下載;使用者按右上角的按鈕才會開始,再按一次暫停。
 
 ## 隱私說明
 

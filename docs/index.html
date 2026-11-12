@@ -51,6 +51,9 @@ h1 {
 }
 h2 { font-size: 22px; line-height: 1.45; margin: 0 0 6px; font-weight: 600; text-wrap: balance; }
 p { margin: 0 0 14px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.btn.music { font-size: 14px; padding: 6px 14px; min-height: 44px; color: var(--muted); }
+.btn.music[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); }
 .brand { color: var(--accent); font-size: 14px; letter-spacing: .12em; font-weight: 600; }
 .muted { color: var(--muted); font-size: 15px; }
 .card {
@@ -97,21 +100,31 @@ footer a { color: inherit; }
 </head>
 <body>
 <main>
-  <div class="brand">先寫一點點</div>
+  <div class="topbar">
+    <div class="brand">先寫一點點</div>
+    <button class="btn music" id="music" type="button" aria-pressed="false">♪ 播放音樂</button>
+  </div>
+  <audio id="bgm" src="breath-of-the-mountain-path.m4a" loop preload="none"></audio>
 
   <!-- 首頁 -->
   <section id="view-intro">
     <h1>約好了,卻卡在表單上那一格?</h1>
-    <p>預約表單要你「描述心理困擾與主訴」,但要把這些整理成文字,本身就很耗力氣。這裡把它拆成七個小問題,大多用點的就好,最後幫你組成一段可以直接貼上的草稿。</p>
+    <p>預約表單要你「描述心理困擾與主訴」,但要把這些整理成文字,本身就很耗力氣。這裡把它拆成幾個小問題,大多用點的就好,最後幫你組成一段可以直接貼上的草稿。</p>
     <div class="card">
       <ul class="plain">
         <li>大約三分鐘。每一題都可以跳過。</li>
         <li>不用寫得完整或正確,見面時對方會再問。</li>
         <li>不用註冊。你的回答不會被存下來,關掉分頁就消失。</li>
       </ul>
-      <p class="muted" id="privacy-line"></p>
+      <div id="paste-block">
+        <label class="sub" for="form-text">把表單上要你填的題目貼在這裡,我會照它來出題(可留空)</label>
+        <textarea id="form-text" rows="4" maxlength="1500" placeholder="例如:請簡述您目前的困擾、持續時間,以及希望透過諮商達成的目標。"></textarea>
+      </div>
+      <p class="muted" id="privacy-line" style="margin-top:14px"></p>
+      <div class="status" id="intro-status" role="status" aria-live="polite"></div>
       <div class="actions">
-        <button class="btn primary" id="start">開始</button>
+        <button class="btn primary" id="start-custom">照這份表單出題</button>
+        <button class="btn" id="start">用通用題目開始</button>
       </div>
     </div>
   </section>
@@ -140,10 +153,10 @@ footer a { color: inherit; }
     <div class="card">
       <h2 id="r-title" tabindex="-1">這是你的草稿</h2>
       <p class="muted">可以直接改。覺得哪裡不像你說的話,就刪掉或換成自己的說法。</p>
-      <textarea id="draft" rows="10" aria-label="草稿內容"></textarea>
+      <textarea id="draft" rows="12" aria-label="草稿內容"></textarea>
       <div class="status" id="status" role="status" aria-live="polite"></div>
       <div class="actions">
-        <button class="btn primary" id="copy">複製</button>
+        <button class="btn primary" id="copy">複製全部</button>
         <button class="btn" id="shorter">換成簡短版</button>
         <button class="btn" id="regen">重新整理一次</button>
         <span class="spacer"></span>

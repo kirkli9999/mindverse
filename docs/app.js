@@ -3,73 +3,66 @@
 (function () {
   "use strict";
 
-  const API = (window.INTAKE_API || "").trim();
+  const API = (window.INTAKE_API || "").trim().replace(/\/+$/, "").replace(/\/api\/draft$/, "");
 
-  const QUESTIONS = [
+  // 通用題目:沒有貼上表單、或 AI 服務無法使用時採用
+  const DEFAULT_QUESTIONS = [
     {
-      id: "topics",
+      key: "topics",
       title: "最近主要是哪些事,讓你想找人談?",
       hint: "可以複選。選「說不上來」也完全沒問題。",
-      multi: true,
+      type: "multi",
       options: ["心情低落", "焦慮、緊張", "睡不好", "容易煩躁、生氣", "提不起勁", "注意力不集中", "工作或學業壓力",
         "家庭關係", "伴侶或感情", "人際相處", "失去重要的人事物", "過去不好的經驗", "身體不舒服但查不出原因",
         "對自己很不滿意", "說不上來,就是不對勁"],
-      textKey: "topicsNote",
-      textLabel: "想補一句自己的話嗎?(可留空)",
     },
     {
-      id: "duration",
+      key: "duration",
       title: "這樣的狀況大概多久了?",
       hint: "抓個大概就好。",
-      multi: false,
+      type: "single",
       options: ["最近一兩週", "一個月左右", "幾個月", "半年以上", "好幾年了", "時好時壞,說不準"],
     },
     {
-      id: "impact",
+      key: "impact",
       title: "它影響到生活的哪些部分?",
       hint: "可以複選。",
-      multi: true,
+      type: "multi",
       options: ["睡眠", "食慾或體重", "工作或課業表現", "出門或上班上課", "和家人朋友的相處", "體力、容易累",
         "原本喜歡的事變得沒興趣", "照顧自己(吃飯、洗澡、整理)", "目前還撐得住"],
     },
     {
-      id: "trigger",
+      key: "trigger",
       title: "最近有發生什麼事或變化嗎?",
       hint: "例如換工作、搬家、分手、家人生病。沒有、或不確定有沒有關係,都可以跳過。",
-      textOnly: true,
-      textKey: "trigger",
-      textLabel: "幾個字就夠了",
+      type: "text",
+      options: [],
     },
     {
-      id: "history",
+      key: "history",
       title: "以前有看過身心科或做過諮商嗎?",
       hint: "可以複選。",
-      multi: true,
+      type: "multi",
       options: ["這是第一次", "以前看過身心科/精神科", "以前做過心理諮商", "目前有在服用相關藥物", "以前吃過藥,現在沒有", "不想在表單上寫"],
     },
     {
-      id: "goals",
+      key: "goals",
       title: "這次最希望得到什麼?",
       hint: "可以複選。不確定也沒關係,這本來就可以見面再談。",
-      multi: true,
+      type: "multi",
       options: ["想知道自己怎麼了", "想睡得好一點", "想讓情緒穩定一點", "想有人聽我說", "想學怎麼面對壓力",
         "想處理一段關係", "想評估需不需要用藥", "還不確定,想先談談看"],
     },
     {
-      id: "extra",
+      key: "extra",
       title: "還有什麼想先讓對方知道的?",
       hint: "例如希望對方的說話方式、不方便談的主題、擔心的事。沒有就直接完成。",
-      textOnly: true,
-      textKey: "extra",
-      textLabel: "可留空",
+      type: "text",
+      options: [],
     },
   ];
 
-  const state = { step: 0, length: "standard", busy: false, answers: emptyAnswers() };
-
-  function emptyAnswers() {
-    return { topics: [], topicsNote: "", duration: "", impact: [], trigger: "", history: [], goals: [], extra: "" };
-  }
+  const state = { step: 0, length: "standard", form: "", custom: false, questions: DEFAULT_QUESTIONS, answers: [] };
 
   const $ = (id) => document.getElementById(id);
   const views = { intro: $("view-intro"), question: $("view-question"), result: $("view-result") };
@@ -80,64 +73,58 @@
     if (focusEl) focusEl.focus({ preventScroll: true });
   }
 
+  function useQuestions(questions, custom) {
+    state.questions = questions;
+    state.custom = custom;
+    state.answers = questions.map(() => ({ selected: [], text: "" }));
+    state.step = 0;
+  }
+
   // ── 問題畫面 ─────────────────────────────────────────────
   function renderQuestion() {
-    const q = QUESTIONS[state.step];
-    const a = state.answers;
+    const q = state.questions[state.step];
+    const a = state.answers[state.step];
+    const total = state.questions.length;
 
-    $("progress").innerHTML = QUESTIONS.map((_, i) => `<span class="${i <= state.step ? "done" : ""}"></span>`).join("");
-    $("step-label").textContent = `第 ${state.step + 1} 題,共 ${QUESTIONS.length} 題`;
+    $("progress").innerHTML = state.questions.map((_, i) => `<span class="${i <= state.step ? "done" : ""}"></span>`).join("");
+    $("step-label").textContent = `第 ${state.step + 1} 題,共 ${total} 題`;
     $("q-title").textContent = q.title;
-    $("q-hint").textContent = q.hint;
+    $("q-hint").textContent = q.hint || "";
 
     const chips = $("q-chips");
     chips.innerHTML = "";
-    chips.hidden = !!q.textOnly;
-    if (!q.textOnly) {
+    chips.hidden = q.type === "text";
+    if (q.type !== "text") {
       for (const option of q.options) {
-        const selected = q.multi ? a[q.id].includes(option) : a[q.id] === option;
         const chip = document.createElement("button");
         chip.type = "button";
         chip.className = "chip";
         chip.textContent = option;
-        chip.setAttribute("aria-pressed", String(selected));
+        chip.setAttribute("aria-pressed", String(a.selected.includes(option)));
         chip.addEventListener("click", () => {
-          if (q.multi) {
-            a[q.id] = a[q.id].includes(option) ? a[q.id].filter((v) => v !== option) : [...a[q.id], option];
-          } else {
-            a[q.id] = a[q.id] === option ? "" : option;
-          }
+          if (a.selected.includes(option)) a.selected = a.selected.filter((v) => v !== option);
+          else a.selected = q.type === "single" ? [option] : [...a.selected, option];
+          a.text = $("q-text").value.trim();
           renderQuestion();
         });
         chips.appendChild(chip);
       }
     }
 
-    const hasText = !!q.textKey;
-    $("q-text").hidden = !hasText;
-    $("q-text-label").hidden = !hasText;
-    if (hasText) {
-      $("q-text-label").textContent = q.textLabel;
-      $("q-text").value = a[q.textKey];
-    }
+    // 每一題都可以手寫:選項不合用時,直接用自己的話說
+    $("q-text-label").textContent = q.type === "text" ? "幾個字就夠了(可留空)" : "選項都不太對?用自己的話寫也可以(可留空)";
+    $("q-text").value = a.text;
 
     $("back").textContent = state.step === 0 ? "回首頁" : "上一題";
-    $("next").textContent = state.step === QUESTIONS.length - 1 ? "完成,幫我整理" : "下一題";
+    $("next").textContent = state.step === total - 1 ? "完成,幫我整理" : "下一題";
   }
 
   function saveText() {
-    const q = QUESTIONS[state.step];
-    if (q.textKey) state.answers[q.textKey] = $("q-text").value.trim();
-  }
-
-  function clearCurrent() {
-    const q = QUESTIONS[state.step];
-    if (!q.textOnly) state.answers[q.id] = q.multi ? [] : "";
-    if (q.textKey) state.answers[q.textKey] = "";
+    state.answers[state.step].text = $("q-text").value.trim();
   }
 
   function advance() {
-    if (state.step < QUESTIONS.length - 1) {
+    if (state.step < state.questions.length - 1) {
       state.step += 1;
       renderQuestion();
       show("question", $("q-title"));
@@ -147,63 +134,145 @@
     }
   }
 
-  // ── 本機範本(不連線)────────────────────────────────────
-  function localDraft(a, length) {
-    const s = [];
-    const topics = a.topics.filter((t) => t !== "說不上來,就是不對勁");
-    if (topics.length) s.push(`最近主要的困擾是${topics.join("、")}。`);
-    else if (a.topics.length) s.push("最近覺得自己狀況不太對勁,但說不太上來是什麼。");
-    if (a.topicsNote) s.push(ensureEnd(a.topicsNote));
-    if (a.duration) {
-      s.push(a.duration === "時好時壞,說不準" ? "這樣的狀況時好時壞,說不準持續了多久。" : `這樣的狀況已經持續${a.duration.replace(/了$/, "")}。`);
-    }
-    const impact = a.impact.filter((t) => t !== "目前還撐得住");
-    if (impact.length) s.push(`受到影響的部分包括:${impact.join("、")}。`);
-    if (a.impact.includes("目前還撐得住")) s.push(impact.length ? "日常生活目前還撐得住。" : "日常生活目前還撐得住,但想及早處理。");
-    if (a.trigger) s.push(`近期的事件或變化:${ensureEnd(a.trigger)}`);
-    const history = a.history.filter((t) => t !== "不想在表單上寫");
-    if (history.length) {
-      s.push(history.map((h) => (h === "這是第一次" ? "這是我第一次尋求這類協助" : h)).join(";") + "。");
-    }
-    if (length !== "short") {
-      const goals = a.goals.filter((t) => t !== "還不確定,想先談談看");
-      if (goals.length) s.push(`這次希望能:${goals.map((g) => g.replace(/^想/, "")).join("、")}。`);
-      else if (a.goals.length) s.push("這次還不確定想要什麼,想先談談看。");
-      if (a.extra) s.push(`另外想先說明:${ensureEnd(a.extra)}`);
-    }
-    return s.join("");
+  function answeredItems() {
+    return state.questions
+      .map((q, i) => ({ question: q.title, selected: state.answers[i].selected, text: state.answers[i].text }))
+      .filter((it) => it.selected.length || it.text);
   }
 
+  // ── 本機範本(不連線)────────────────────────────────────
   function ensureEnd(text) {
     return /[。!?!?…]$/.test(text) ? text : text + "。";
   }
 
-  function hasAnyAnswer(a) {
-    return Object.values(a).some((v) => (Array.isArray(v) ? v.length : v));
+  function byKey(key) {
+    const i = state.questions.findIndex((q) => q.key === key);
+    return i < 0 ? { selected: [], text: "" } : state.answers[i];
   }
 
-  // ── 產生草稿 ─────────────────────────────────────────────
-  const FALLBACK_NOTES = {
-    user_quota: "今天的 AI 整理次數已經用完,先用基本範本幫你組好了,內容一樣可以用。",
-    site_quota: "今天全站的 AI 整理額度已用完,先用基本範本幫你組好了,內容一樣可以用。",
-    declined: "AI 這次沒有產出內容,先用基本範本幫你組好了。",
-    offline: "目前連不上 AI 整理服務,先用基本範本幫你組好了,內容一樣可以用。",
+  function localDraftDefault(length) {
+    const s = [];
+    const topics = byKey("topics");
+    const named = topics.selected.filter((t) => t !== "說不上來,就是不對勁");
+    if (named.length) s.push(`最近主要的困擾是${named.join("、")}。`);
+    else if (topics.selected.length) s.push("最近覺得自己狀況不太對勁,但說不太上來是什麼。");
+    if (topics.text) s.push(ensureEnd(topics.text));
+
+    const duration = byKey("duration");
+    const d = duration.selected[0];
+    if (d) s.push(d === "時好時壞,說不準" ? "這樣的狀況時好時壞,說不準持續了多久。" : `這樣的狀況已經持續${d.replace(/了$/, "")}。`);
+    if (duration.text) s.push(ensureEnd(duration.text));
+
+    const impact = byKey("impact");
+    const affected = impact.selected.filter((t) => t !== "目前還撐得住");
+    if (affected.length) s.push(`受到影響的部分包括:${affected.join("、")}。`);
+    if (impact.selected.includes("目前還撐得住")) s.push(affected.length ? "日常生活目前還撐得住。" : "日常生活目前還撐得住,但想及早處理。");
+    if (impact.text) s.push(ensureEnd(impact.text));
+
+    const trigger = byKey("trigger");
+    if (trigger.text) s.push(`近期的事件或變化:${ensureEnd(trigger.text)}`);
+
+    const history = byKey("history");
+    const past = history.selected.filter((t) => t !== "不想在表單上寫");
+    if (past.length) s.push(past.map((h) => (h === "這是第一次" ? "這是我第一次尋求這類協助" : h)).join(";") + "。");
+    if (history.text) s.push(ensureEnd(history.text));
+
+    if (length !== "short") {
+      const goals = byKey("goals");
+      const wants = goals.selected.filter((t) => t !== "還不確定,想先談談看");
+      if (wants.length) s.push(`這次希望能:${wants.map((g) => g.replace(/^想/, "")).join("、")}。`);
+      else if (goals.selected.length) s.push("這次還不確定想要什麼,想先談談看。");
+      if (goals.text) s.push(ensureEnd(goals.text));
+      const extra = byKey("extra");
+      if (extra.text) s.push(`另外想先說明:${ensureEnd(extra.text)}`);
+    }
+    return s.join("");
+  }
+
+  // 自訂題目沒有對應的句型,就照「題目 → 回答」逐項列出
+  function localDraftGeneric() {
+    return answeredItems()
+      .map((it) => {
+        const parts = [];
+        if (it.selected.length) parts.push(it.selected.join("、") + "。");
+        if (it.text) parts.push(ensureEnd(it.text));
+        return `【${it.question}】\n${parts.join("")}`;
+      })
+      .join("\n\n");
+  }
+
+  function localDraft() {
+    return state.custom ? localDraftGeneric() : localDraftDefault(state.length);
+  }
+
+  // ── 連線 ─────────────────────────────────────────────────
+  async function post(path, body) {
+    const res = await fetch(API + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      referrerPolicy: "no-referrer",
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, data };
+  }
+
+  const QUOTA_NOTES = {
+    user_quota: "今天的 AI 次數已經用完",
+    site_quota: "今天全站的 AI 額度已用完",
   };
 
+  async function startCustom() {
+    const form = $("form-text").value.trim();
+    const status = $("intro-status");
+    if (!form) {
+      status.textContent = "還沒有貼上表單題目。也可以直接按「用通用題目開始」。";
+      $("form-text").focus();
+      return;
+    }
+    $("start-custom").disabled = true;
+    $("start").disabled = true;
+    status.textContent = "正在依這份表單準備題目,大約需要十幾秒…";
+    let reason = "目前連不上 AI 服務";
+    try {
+      const { ok, data } = await post("/api/questions", { form });
+      if (ok && Array.isArray(data.questions) && data.questions.length) {
+        state.form = form;
+        useQuestions(data.questions, true);
+        status.textContent = "";
+        renderQuestion();
+        show("question", $("q-title"));
+        return;
+      }
+      reason = QUOTA_NOTES[data.error] || "這次沒能依表單出題";
+    } catch (err) {
+      reason = "目前連不上 AI 服務";
+    } finally {
+      $("start-custom").disabled = false;
+      $("start").disabled = false;
+    }
+    // 出題失敗不擋路:改用通用題目,表單內容仍會在最後整理時一併參考
+    state.form = form;
+    useQuestions(DEFAULT_QUESTIONS, false);
+    renderQuestion();
+    show("question", $("q-title"));
+    $("q-hint").textContent = `${reason},先改用通用題目。` + $("q-hint").textContent;
+  }
+
   async function generate() {
-    const a = state.answers;
     const draft = $("draft");
     const status = $("status");
+    const items = answeredItems();
+    $("regen").hidden = !API;
+    $("shorter").hidden = !API && state.custom;
 
-    if (!hasAnyAnswer(a)) {
+    if (!items.length) {
       draft.value = "";
       status.textContent = "每一題都跳過了,所以沒有內容可以整理。回去隨便點一兩個選項就可以,不用多。";
       return;
     }
-
     if (!API) {
-      draft.value = localDraft(a, state.length);
-      $("regen").hidden = true;
+      draft.value = localDraft();
       status.textContent = "已用基本範本組好(未連線到任何 AI 服務)。";
       return;
     }
@@ -211,32 +280,25 @@
     setBusy(true);
     draft.value = "";
     status.textContent = "整理中,大約需要十幾秒…";
-    let note = FALLBACK_NOTES.offline;
+    let reason = "目前連不上 AI 整理服務";
     try {
-      const res = await fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: a, length: state.length }),
-        referrerPolicy: "no-referrer",
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.draft) {
+      const { ok, data } = await post("/api/draft", { form: state.form, items, length: state.length });
+      if (ok && data.draft) {
         draft.value = data.draft;
-        status.textContent = typeof data.remaining === "number" ? `整理好了。今天還可以再整理 ${data.remaining} 次。` : "整理好了。";
+        status.textContent = typeof data.remaining === "number" ? `整理好了。今天還可以再用 ${data.remaining} 次。` : "整理好了。";
         setBusy(false);
         return;
       }
-      note = FALLBACK_NOTES[data.error] || FALLBACK_NOTES.offline;
+      reason = QUOTA_NOTES[data.error] || "AI 這次沒有產出內容";
     } catch (err) {
-      note = FALLBACK_NOTES.offline;
+      reason = "目前連不上 AI 整理服務";
     }
-    draft.value = localDraft(a, state.length);
-    status.textContent = note;
+    draft.value = localDraft();
+    status.textContent = `${reason},先用基本範本幫你組好了,內容一樣可以用。`;
     setBusy(false);
   }
 
   function setBusy(busy) {
-    state.busy = busy;
     for (const id of ["copy", "shorter", "regen"]) $(id).disabled = busy;
   }
 
@@ -252,18 +314,42 @@
     $("status").textContent = "已複製。貼到預約表單就完成了。";
   }
 
-  // ── 事件 ─────────────────────────────────────────────────
+  // ── 背景音樂:預設不播放、不預先下載,由使用者自己決定 ──
+  const bgm = $("bgm");
+  bgm.volume = 0.5;
+  function syncMusic() {
+    const playing = !bgm.paused;
+    $("music").setAttribute("aria-pressed", String(playing));
+    $("music").textContent = playing ? "♪ 暫停音樂" : "♪ 播放音樂";
+  }
+  bgm.addEventListener("play", syncMusic);
+  bgm.addEventListener("pause", syncMusic);
+  $("music").addEventListener("click", () => {
+    if (bgm.paused) bgm.play().catch(syncMusic);
+    else bgm.pause();
+  });
+
+  // ── 初始化與事件 ─────────────────────────────────────────
+  $("paste-block").hidden = !API;
+  $("start-custom").hidden = !API;
+  if (!API) $("start").classList.add("primary");
+  $("start").textContent = API ? "用通用題目開始" : "開始";
   $("privacy-line").textContent = API
-    ? "最後一步會把你的回答傳給 AI(Anthropic 的 Claude)整理成通順的文字。本站不保存內容;AI 服務商會依其政策短期留存請求紀錄,所以請不要寫姓名等個人資料。"
+    ? "貼上的表單題目和你的回答,會傳給 AI(Anthropic 的 Claude)用來出題與整理文字。本站不保存內容;AI 服務商會依其政策短期留存請求紀錄,所以請不要寫姓名等個人資料。"
     : "目前是離線範本模式:所有內容都只在你的瀏覽器裡處理,不會傳到任何地方。";
 
   $("start").addEventListener("click", () => {
-    state.step = 0;
+    state.form = API ? $("form-text").value.trim() : "";
+    useQuestions(DEFAULT_QUESTIONS, false);
     renderQuestion();
     show("question", $("q-title"));
   });
+  $("start-custom").addEventListener("click", startCustom);
   $("next").addEventListener("click", () => { saveText(); advance(); });
-  $("skip").addEventListener("click", () => { clearCurrent(); advance(); });
+  $("skip").addEventListener("click", () => {
+    state.answers[state.step] = { selected: [], text: "" };
+    advance();
+  });
   $("back").addEventListener("click", () => {
     saveText();
     if (state.step === 0) return show("intro");
@@ -284,12 +370,14 @@
     show("question", $("q-title"));
   });
   $("reset").addEventListener("click", () => {
-    state.answers = emptyAnswers();
-    state.step = 0;
+    useQuestions(DEFAULT_QUESTIONS, false);
+    state.form = "";
     state.length = "standard";
+    $("form-text").value = "";
     $("shorter").textContent = "換成簡短版";
     $("draft").value = "";
     $("status").textContent = "";
+    $("intro-status").textContent = "";
     show("intro");
   });
 })();
