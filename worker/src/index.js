@@ -204,13 +204,16 @@ async function callClaude(env, system, userMessage, format) {
     system,
     messages: [{ role: "user", content: userMessage }],
   });
-  if (response.stop_reason === "refusal" || response.stop_reason === "max_tokens") return null;
   const text = response.content
     .filter((block) => block.type === "text")
     .map((block) => block.text)
     .join("")
     .trim();
-  return text || null;
+  if (response.stop_reason === "refusal" || response.stop_reason === "max_tokens" || !text) {
+    // 只回報停止原因,不含任何內容
+    return { failed: response.stop_reason || "empty", category: response.stop_details?.category ?? null };
+  }
+  return { text };
 }
 
 async function handleQuestions(env, payload) {
@@ -219,19 +222,22 @@ async function handleQuestions(env, payload) {
   return {
     needsQuota: true,
     run: async () => {
-      const text = await callClaude(env, QUESTIONS_PROMPT, `<form>\n${form}\n</form>`, {
-        type: "json_schema",
-        schema: QUESTIONS_SCHEMA,
-      });
-      if (!text) return null;
-      let parsed;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        return null;
+      // 模型偶爾會回傳過少的題目,重試一次
+      let failed = "too_few_questions";
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const out = await callClaude(env, QUESTIONS_PROMPT, `<form>\n${form}\n</form>`, {
+          type: "json_schema",
+          schema: QUESTIONS_SCHEMA,
+        });
+        if (out.failed) return out;
+        try {
+          const questions = sanitizeQuestions(JSON.parse(out.text));
+          if (questions) return { questions };
+        } catch {
+          failed = "bad_json";
+        }
       }
-      const questions = sanitizeQuestions(parsed);
-      return questions ? { questions } : null;
+      return { failed };
     },
   };
 }
@@ -244,8 +250,8 @@ async function handleDraft(env, payload) {
   return {
     needsQuota: true,
     run: async () => {
-      const draft = await callClaude(env, DRAFT_PROMPT, buildDraftMessage(form, items, length));
-      return draft ? { draft } : null;
+      const out = await callClaude(env, DRAFT_PROMPT, buildDraftMessage(form, items, length));
+      return out.failed ? out : { draft: out.text };
     },
   };
 }
@@ -290,7 +296,9 @@ export default {
 
     try {
       const result = await plan.run();
-      if (!result) return json({ error: "declined", remaining: quota.remaining }, 422, cors);
+      if (result.failed) {
+        return json({ error: "declined", detail: result.failed, category: result.category ?? null, remaining: quota.remaining }, 422, cors);
+      }
       return json({ ...result, remaining: quota.remaining }, 200, cors);
     } catch (err) {
       // 只記錄錯誤類型與狀態碼,不記錄任何使用者內容

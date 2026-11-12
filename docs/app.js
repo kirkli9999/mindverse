@@ -206,7 +206,7 @@
   }
 
   // ── 連線 ─────────────────────────────────────────────────
-  async function post(path, body) {
+  async function postOnce(path, body) {
     const res = await fetch(API + path, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -214,7 +214,16 @@
       referrerPolicy: "no-referrer",
     });
     const data = await res.json().catch(() => ({}));
-    return { ok: res.ok, data };
+    return { ok: res.ok, status: res.status, data };
+  }
+
+  // 連線偶爾會中斷,或 AI 偶爾沒產出:自動再試一次,使用者不必自己重按
+  async function post(path, body) {
+    try {
+      const first = await postOnce(path, body);
+      if (first.ok || first.status === 429 || first.status === 400) return first;
+    } catch (err) { /* 再試一次 */ }
+    return postOnce(path, body);
   }
 
   const QUOTA_NOTES = {
