@@ -258,7 +258,11 @@ export default {
     if (!handler) return json({ error: "not_found" }, 404);
 
     const cors = corsHeaders(request, env);
-    if (!cors) return json({ error: "origin_not_allowed" }, 403);
+    if (!cors) {
+      // 仍然拒絕,但讓瀏覽器讀得到原因,前端才能顯示確切的錯誤
+      const origin = request.headers.get("Origin");
+      return json({ error: "origin_not_allowed" }, 403, origin ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" } : {});
+    }
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
     if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405, cors);
 
@@ -275,7 +279,13 @@ export default {
     const plan = await handler(env, payload);
     if (!plan.needsQuota) return json(plan.body, plan.status, cors);
 
-    const quota = await takeQuota(request, env);
+    let quota;
+    try {
+      quota = await takeQuota(request, env);
+    } catch (err) {
+      console.error("quota_failed", err?.name);
+      return json({ error: "quota_unavailable" }, 503, cors);
+    }
     if (!quota.ok) return json({ error: quota.reason }, 429, cors);
 
     try {
@@ -287,7 +297,8 @@ export default {
       const status = err instanceof Anthropic.APIError ? err.status : undefined;
       console.error("request_failed", err?.name, status);
       const overloaded = err instanceof Anthropic.RateLimitError || (status && status >= 500);
-      return json({ error: overloaded ? "busy" : "upstream_error", remaining: quota.remaining }, 502, cors);
+      const code = status === 401 || status === 403 ? "key_rejected" : overloaded ? "busy" : "upstream_error";
+      return json({ error: code, upstream_status: status ?? null, remaining: quota.remaining }, 502, cors);
     }
   },
 };

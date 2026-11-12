@@ -222,6 +222,15 @@
     site_quota: "今天全站的 AI 額度已用完",
   };
 
+  // 把失敗原因講清楚(附代碼),方便回報與排查
+  function failNote(data, fallback) {
+    if (QUOTA_NOTES[data.error]) return QUOTA_NOTES[data.error];
+    return data.error ? `${fallback}(${data.error}${data.upstream_status ? " " + data.upstream_status : ""})` : fallback;
+  }
+  function netNote(err) {
+    return `目前連不上 AI 服務(${(err && err.message) || "network"})`;
+  }
+
   async function startCustom() {
     const form = $("form-text").value.trim();
     const status = $("intro-status");
@@ -244,9 +253,9 @@
         show("question", $("q-title"));
         return;
       }
-      reason = QUOTA_NOTES[data.error] || "這次沒能依表單出題";
+      reason = failNote(data, "這次沒能依表單出題");
     } catch (err) {
-      reason = "目前連不上 AI 服務";
+      reason = netNote(err);
     } finally {
       $("start-custom").disabled = false;
       $("start").disabled = false;
@@ -289,9 +298,9 @@
         setBusy(false);
         return;
       }
-      reason = QUOTA_NOTES[data.error] || "AI 這次沒有產出內容";
+      reason = failNote(data, "AI 這次沒有產出內容");
     } catch (err) {
-      reason = "目前連不上 AI 整理服務";
+      reason = netNote(err);
     }
     draft.value = localDraft();
     status.textContent = `${reason},先用基本範本幫你組好了,內容一樣可以用。`;
