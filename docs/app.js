@@ -335,8 +335,8 @@
   if (!API) $("start").classList.add("primary");
   $("start").textContent = API ? "用通用題目開始" : "開始";
   $("privacy-line").textContent = API
-    ? "貼上的表單題目和你的回答,會傳給 AI(Anthropic 的 Claude)用來出題與整理文字。本站不保存內容;AI 服務商會依其政策短期留存請求紀錄,所以請不要寫姓名等個人資料。"
-    : "目前是離線範本模式:所有內容都只在你的瀏覽器裡處理,不會傳到任何地方。";
+    ? "內容會交給 AI 整理成文字,本站不保存;不用寫姓名。"
+    : "內容只在你的瀏覽器裡處理,不會傳到任何地方。";
 
   $("start").addEventListener("click", () => {
     state.form = API ? $("form-text").value.trim() : "";

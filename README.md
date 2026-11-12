@@ -1,4 +1,4 @@
-# 先寫一點點 — 預約表單草稿小幫手
+# 脆友心理諮商預約表單輔助填寫
 
 已經約好身心科或心理諮商,卻卡在預約表單的「描述心理困擾與主訴」那一格?
 這個網站把那一格拆成幾個可以用點選回答的小問題,當下組成一段能直接貼上的草稿。
@@ -29,7 +29,7 @@ GitHub Pages 只能放靜態檔案,任何寫在前端的金鑰都等於公開。
 
 ### 1. 發佈網站
 
-Repo → Settings → Pages → Source 選 **Deploy from a branch**,資料夾選 **/docs**。
+Repo → Settings → Pages → Source 選 **Deploy from a branch**,分支選 `claude/cool-ramanujan-u9eymo`、資料夾選 **/docs**。
 此時網站已可使用(離線範本模式)。
 
 ### 2. 建立 Claude API Key(不進版控)
