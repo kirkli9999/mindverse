@@ -18,4 +18,4 @@ ALLOWED_ORIGINS = "https://kirkli9999.github.io,http://localhost:8080"
 # 建立方式:npx wrangler kv namespace create RATE_LIMIT,再把回傳的 id 貼到下方
 [[kv_namespaces]]
 binding = "RATE_LIMIT"
-id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+id = "36e8365711f04a8b9e92e8a42e3677fa"
