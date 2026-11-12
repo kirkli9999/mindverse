@@ -73,7 +73,8 @@ window.INTAKE_API = "https://mindverse-intake.<你的子網域>.workers.dev";
 |---|---|---|
 | `DAILY_LIMIT_PER_IP` | 50 | 每個來源 IP 每日次數(台北時間換日)。「依表單出題」與「整理文字」各算一次 |
 | `DAILY_LIMIT_GLOBAL` | 400 | 全站每日次數,等於你的每日成本上限 |
-| `MODEL` | `claude-opus-5-5` | 使用的 Claude 模型 |
+| `MODEL_QUESTIONS` / `SPEED_QUESTIONS` | `claude-opus-5-5` / `fast` | 依表單出題用的模型與速度(快速模式約 7 秒) |
+| `MODEL_DRAFT` | `claude-sonnet-5-5` | 整理文字用的模型(約 2–3 秒) |
 | `ALLOWED_ORIGINS` | GitHub Pages 網址 | 允許呼叫的網站來源 |
 
 ## 背景音樂

@@ -96,6 +96,13 @@ label.sub { display: block; margin-top: 14px; font-size: 15px; color: var(--mute
 .status { min-height: 1.75em; font-size: 15px; color: var(--muted); margin-top: 10px; }
 footer { margin-top: 28px; font-size: 14px; color: var(--muted); }
 footer a { color: inherit; }
+.loading { display: flex; align-items: center; gap: 10px; }
+.loading::before {
+  content: ""; width: 18px; height: 18px; flex: none; border-radius: 50%;
+  border: 3px solid var(--line); border-top-color: var(--accent); animation: spin .9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .loading::before { animation-duration: 3s; } }
 [hidden] { display: none !important; }
 </style>
 </head>
@@ -175,7 +182,7 @@ footer a { color: inherit; }
     <p>開放原始碼:<a href="https://github.com/kirkli9999/mindverse" rel="noopener">github.com/kirkli9999/mindverse</a></p>
   </footer>
 </main>
-<script src="config.js?v=4"></script>
-<script src="app.js?v=4"></script>
+<script src="config.js?v=5"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

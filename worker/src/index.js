@@ -58,6 +58,7 @@ const DRAFT_PROMPT = `你協助一位已經預約(或正要預約)身心科、�
 - 用第一人稱、繁體中文、平實的日常口語,像本人冷靜地向初次見面的專業人員說明。
 - 只使用對方提供的內容。不新增症狀、原因、時間或程度;對方沒說的就不寫。
 - 不下診斷、不使用對方沒用過的病名或臨床術語,不推測成因,不給建議,不安慰、不評價,也不誇大或淡化。
+- 不要替對方建立因果或關聯。各項內容並列陳述即可;除非對方的原話就這樣說,否則不要用「因為、所以、導致、由於、主要是、使得、跟…有關」這類詞把兩件事連在一起,也不要寫「這是我最想談的」這類對方沒說過的評語。
 - 對方自己的用詞盡量保留,因為那是專業人員最想看到的原貌。
 - 沒有回答的項目直接略過,不要寫「未提供」。
 - 如果對方提到想傷害自己或不想活的念頭,如實、平靜地寫進去,不要省略也不要渲染;這是對方需要讓專業人員知道的資訊。
@@ -93,8 +94,8 @@ function stripNotes(text) {
 }
 
 const LENGTH_GUIDE = {
-  short: "長度:精簡,整體約 80 到 120 字(若分欄位,每欄一兩句)。",
-  standard: "長度:整體約 200 到 300 字(若分欄位,每欄兩到四句)。",
+  short: "長度:精簡,整體不超過 120 字(若分欄位,每欄一兩句)。素材少就寫得更短,不要為了長度補內容。",
+  standard: "長度:整體不超過 300 字(若分欄位,每欄最多四句)。素材少就寫短,不要為了長度補內容或重複同一件事。",
 };
 
 function json(body, status, headers) {
@@ -219,18 +220,25 @@ async function takeQuota(request, env) {
   return { ok: true, remaining: Math.min(perIp - ipCount - 1, global - globalCount - 1) };
 }
 
-async function callClaude(env, system, userMessage, format) {
+async function callClaude(env, task, system, userMessage, format) {
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 60_000 });
-  const response = await client.beta.messages.create({
-    model: env.MODEL || "claude-opus-5-5",
+  // 出題與整理可各自指定模型:出題重速度,整理重「照實、不推論」
+  const model = (task === "questions" ? env.MODEL_QUESTIONS : env.MODEL_DRAFT) || env.MODEL || "claude-opus-5-5";
+  const params = {
+    model,
     max_tokens: 6000,
     output_config: format ? { effort: "low", format } : { effort: "low" },
-    // 主模型若因安全分類拒答,由伺服器端自動改用後備模型重跑同一請求
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
     system,
     messages: [{ role: "user", content: userMessage }],
-  });
+  };
+  // 主模型若因安全分類拒答,由伺服器端自動改用後備模型重跑同一請求(Haiku 不支援此功能)
+  if (!model.includes("haiku")) {
+    params.betas = ["server-side-fallback-2026-07-01"];
+    params.fallbacks = "default";
+  }
+  // 快速模式:同一個模型、輸出速度較快、單價較高(僅部分模型支援)
+  if (task === "questions" && env.SPEED_QUESTIONS === "fast") params.speed = "fast";
+  const response = await client.beta.messages.create(params);
   const text = response.content
     .filter((block) => block.type === "text")
     .map((block) => block.text)
@@ -252,7 +260,7 @@ async function handleQuestions(env, payload) {
       // 模型偶爾會回傳過少的題目,重試一次
       let failed = "too_few_questions";
       for (let attempt = 0; attempt < 2; attempt++) {
-        const out = await callClaude(env, QUESTIONS_PROMPT, `<form>\n${form}\n</form>`, {
+        const out = await callClaude(env, "questions", QUESTIONS_PROMPT, `<form>\n${form}\n</form>`, {
           type: "json_schema",
           schema: QUESTIONS_SCHEMA,
         });
@@ -277,7 +285,7 @@ async function handleDraft(env, payload) {
   return {
     needsQuota: true,
     run: async () => {
-      const out = await callClaude(env, DRAFT_PROMPT, buildDraftMessage(form, items, length), {
+      const out = await callClaude(env, "draft", DRAFT_PROMPT, buildDraftMessage(form, items, length), {
         type: "json_schema",
         schema: DRAFT_SCHEMA,
       });

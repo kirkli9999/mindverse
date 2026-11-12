@@ -250,7 +250,8 @@
     }
     $("start-custom").disabled = true;
     $("start").disabled = true;
-    status.textContent = "正在依這份表單準備題目,大約需要十幾秒…";
+    status.classList.add("loading");
+    status.textContent = "正在依這份表單準備題目,大約需要十秒…";
     let reason = "目前連不上 AI 服務";
     try {
       const { ok, data } = await post("/api/questions", { form });
@@ -266,6 +267,7 @@
     } catch (err) {
       reason = netNote(err);
     } finally {
+      status.classList.remove("loading");
       $("start-custom").disabled = false;
       $("start").disabled = false;
     }
@@ -297,7 +299,7 @@
 
     setBusy(true);
     draft.value = "";
-    status.textContent = "整理中,大約需要十幾秒…";
+    status.textContent = "整理中,幾秒就好…";
     let reason = "目前連不上 AI 整理服務";
     try {
       const { ok, data } = await post("/api/draft", { form: state.form, items, length: state.length });
@@ -317,6 +319,7 @@
   }
 
   function setBusy(busy) {
+    $("status").classList.toggle("loading", busy);
     for (const id of ["copy", "shorter", "regen"]) $(id).disabled = busy;
   }
 

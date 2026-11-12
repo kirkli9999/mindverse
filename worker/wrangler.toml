@@ -7,7 +7,11 @@ compatibility_date = "2026-10-01"
 enabled = false
 
 [vars]
-MODEL = "claude-opus-5-5"
+# 出題:Opus 5.5 快速模式(實測約 7 秒;標準速度約 15 秒,單價為標準的兩倍)
+MODEL_QUESTIONS = "claude-opus-5-5"
+SPEED_QUESTIONS = "fast"
+# 整理:Sonnet 5.5(實測約 2–3 秒,最貼近原話、不加推論)
+MODEL_DRAFT = "claude-sonnet-5-5"
 # 每個來源 IP 每日上限、全站每日上限(台北時間換日)
 DAILY_LIMIT_PER_IP = "50"
 DAILY_LIMIT_GLOBAL = "400"
