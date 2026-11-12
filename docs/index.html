@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>先寫一點點 — 預約表單草稿小幫手</title>
+<meta name="description" content="已經約好身心科或心理諮商,卻卡在預約表單的「主訴」欄位?用點選的方式回答幾個小問題,當下產出一段可以直接貼上的草稿。不註冊、不儲存。">
+<meta name="referrer" content="no-referrer">
+<style>
+:root {
+  --bg: #f6f3ec;
+  --card: #fffdf8;
+  --ink: #2b2a27;
+  --muted: #6d6a62;
+  --line: #ddd7c9;
+  --accent: #3f6b5c;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3ece7;
+  --warn-bg: #fbf1e3;
+  --warn-line: #e6c99a;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1d1f1e;
+    --card: #262928;
+    --ink: #ecebe6;
+    --muted: #a5a39b;
+    --line: #3b3f3d;
+    --accent: #8fc3ae;
+    --accent-ink: #14201c;
+    --accent-soft: #2f3b37;
+    --warn-bg: #33291b;
+    --warn-line: #6b5330;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.75;
+}
+main { max-width: 640px; margin: 0 auto; padding: 28px 16px 48px; }
+h1 {
+  font-family: "Songti TC", "Noto Serif TC", "PMingLiU", serif;
+  font-size: 30px; line-height: 1.35; margin: 12px 0 14px; font-weight: 600; text-wrap: balance;
+}
+h2 { font-size: 22px; line-height: 1.45; margin: 0 0 6px; font-weight: 600; text-wrap: balance; }
+p { margin: 0 0 14px; }
+.brand { color: var(--accent); font-size: 14px; letter-spacing: .12em; font-weight: 600; }
+.muted { color: var(--muted); font-size: 15px; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 22px 20px; margin-top: 18px;
+}
+ul.plain { margin: 0 0 14px; padding-left: 1.2em; }
+ul.plain li { margin-bottom: 4px; }
+button { font: inherit; cursor: pointer; color: inherit; }
+.btn {
+  border: 1px solid var(--line); background: transparent; border-radius: 999px;
+  padding: 10px 20px; min-height: 46px;
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn:disabled { opacity: .55; cursor: default; }
+.btn.link { border: 0; padding: 10px 6px; color: var(--muted); text-decoration: underline; text-underline-offset: 4px; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 18px; }
+.actions .spacer { flex: 1; }
+.progress { display: flex; gap: 6px; margin-bottom: 16px; }
+.progress span { flex: 1; height: 4px; border-radius: 4px; background: var(--line); }
+.progress span.done { background: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px; }
+.chip {
+  border: 1px solid var(--line); background: transparent; border-radius: 999px;
+  padding: 8px 15px; min-height: 42px; font-size: 16px;
+}
+.chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); font-weight: 600; }
+textarea {
+  width: 100%; font: inherit; color: inherit; background: var(--bg);
+  border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; resize: vertical;
+}
+label.sub { display: block; margin-top: 14px; font-size: 15px; color: var(--muted); }
+.note {
+  background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px;
+  padding: 12px 14px; font-size: 15px; margin-top: 16px;
+}
+.note p:last-child { margin-bottom: 0; }
+.status { min-height: 1.75em; font-size: 15px; color: var(--muted); margin-top: 10px; }
+footer { margin-top: 28px; font-size: 14px; color: var(--muted); }
+footer a { color: inherit; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">先寫一點點</div>
+
+  <!-- 首頁 -->
+  <section id="view-intro">
+    <h1>約好了,卻卡在表單上那一格?</h1>
+    <p>預約表單要你「描述心理困擾與主訴」,但要把這些整理成文字,本身就很耗力氣。這裡把它拆成七個小問題,大多用點的就好,最後幫你組成一段可以直接貼上的草稿。</p>
+    <div class="card">
+      <ul class="plain">
+        <li>大約三分鐘。每一題都可以跳過。</li>
+        <li>不用寫得完整或正確,見面時對方會再問。</li>
+        <li>不用註冊。你的回答不會被存下來,關掉分頁就消失。</li>
+      </ul>
+      <p class="muted" id="privacy-line"></p>
+      <div class="actions">
+        <button class="btn primary" id="start">開始</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 問題 -->
+  <section id="view-question" hidden>
+    <div class="card">
+      <div class="progress" id="progress" aria-hidden="true"></div>
+      <p class="muted" id="step-label"></p>
+      <h2 id="q-title" tabindex="-1"></h2>
+      <p class="muted" id="q-hint"></p>
+      <div class="chips" id="q-chips" role="group" aria-labelledby="q-title"></div>
+      <label class="sub" id="q-text-label" for="q-text"></label>
+      <textarea id="q-text" rows="3" maxlength="600"></textarea>
+      <div class="actions">
+        <button class="btn link" id="back">上一題</button>
+        <span class="spacer"></span>
+        <button class="btn" id="skip">跳過</button>
+        <button class="btn primary" id="next">下一題</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 結果 -->
+  <section id="view-result" hidden>
+    <div class="card">
+      <h2 id="r-title" tabindex="-1">這是你的草稿</h2>
+      <p class="muted">可以直接改。覺得哪裡不像你說的話,就刪掉或換成自己的說法。</p>
+      <textarea id="draft" rows="10" aria-label="草稿內容"></textarea>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+      <div class="actions">
+        <button class="btn primary" id="copy">複製</button>
+        <button class="btn" id="shorter">換成簡短版</button>
+        <button class="btn" id="regen">重新整理一次</button>
+        <span class="spacer"></span>
+        <button class="btn link" id="edit">回去改回答</button>
+        <button class="btn link" id="reset">清除並重來</button>
+      </div>
+      <div class="note">
+        <p>這段文字只是幫你開頭,不是評估,也不是診斷。貼上去之後就算完成一大步了。</p>
+        <p>如果現在的狀況讓你覺得撐不到看診那天,可以先打 <strong>1925</strong>(安心專線,24 小時、免付費)、<strong>1995</strong>(生命線)或 <strong>1980</strong>(張老師);有立即危險請打 <strong>119</strong>。</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>本工具不提供醫療建議、診斷或治療,也不能取代專業人員。請不要填入姓名、身分證字號、電話等可辨識個人身分的資料。</p>
+    <p>開放原始碼:<a href="https://github.com/kirkli9999/mindverse" rel="noopener">github.com/kirkli9999/mindverse</a></p>
+  </footer>
+</main>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

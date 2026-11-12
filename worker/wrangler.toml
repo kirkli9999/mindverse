@@ -1,0 +1,21 @@
+name = "mindverse-intake"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# 不保留請求紀錄(使用者輸入屬敏感內容)
+[observability]
+enabled = false
+
+[vars]
+MODEL = "claude-opus-5-5"
+# 每個來源 IP 每日上限、全站每日上限(台北時間換日)
+DAILY_LIMIT_PER_IP = "50"
+DAILY_LIMIT_GLOBAL = "400"
+# 允許呼叫的網站來源,逗號分隔
+ALLOWED_ORIGINS = "https://kirkli9999.github.io,http://localhost:8080"
+
+# 只存「雜湊後的 IP + 當日次數」,48 小時自動過期;不存任何使用者輸入
+# 建立方式:npx wrangler kv namespace create RATE_LIMIT,再把回傳的 id 貼到下方
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"

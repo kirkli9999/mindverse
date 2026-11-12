@@ -1,0 +1,13 @@
+# 機密:API Key 只能放在 Cloudflare secret 或本機 .dev.vars,絕不進版控
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.env
+.env.*
+!.env.example
+*.key
+
+node_modules/
+.wrangler/
+dist/
+.DS_Store
