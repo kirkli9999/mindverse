@@ -54,6 +54,7 @@ p { margin: 0 0 14px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .btn.music { font-size: 14px; padding: 6px 14px; min-height: 44px; color: var(--muted); }
 .btn.music[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); }
+h1 span { display: inline-block; }
 .brand { color: var(--accent); font-size: 14px; letter-spacing: .12em; font-weight: 600; }
 .muted { color: var(--muted); font-size: 15px; }
 .card {
@@ -101,14 +102,14 @@ footer a { color: inherit; }
 <body>
 <main>
   <div class="topbar">
-    <div class="brand">脆友互助</div>
+    <span></span>
     <button class="btn music" id="music" type="button" aria-pressed="false">♪ 播放音樂</button>
   </div>
   <audio id="bgm" src="breath-of-the-mountain-path.m4a" loop preload="none"></audio>
 
   <!-- 首頁 -->
   <section id="view-intro">
-    <h1>脆友心理諮商預約表單輔助填寫</h1>
+    <h1><span>脆友心理諮商</span><span>預約表單</span><span>輔助填寫</span></h1>
     <p>預約表單要你描述困擾卻寫不出來?回答幾個小問題,大多用點的就好,最後幫你組成一段可以直接貼上的文字。</p>
     <div class="card">
       <ul class="plain">
